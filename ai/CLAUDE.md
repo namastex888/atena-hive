@@ -8,40 +8,25 @@
 **🎯 AI Sub-areas**: [agents/](agents/CLAUDE.md) | [teams/](teams/CLAUDE.md) | [workflows/](workflows/CLAUDE.md)  
 **🔗 Integration**: [API](../api/CLAUDE.md) | [Config](../lib/config/CLAUDE.md) | [Knowledge](../lib/knowledge/CLAUDE.md)
 
-## Genie Hive Orchestration Mechanics
+## Multi-Agent System Structure
 
-**Three-Layer Coordination System:**
+**Template-Based Development:**
 ```
-🧞 GENIE TEAM (mode="coordinate")
-    ↓ coordinates via claude-mcp tool
-🎯 DOMAIN ORCHESTRATORS (ai/agents/)
-    ├── genie-dev → Development coordination
-    ├── genie-testing → Testing coordination  
-    ├── genie-quality → Quality coordination
-    ├── genie-devops → DevOps coordination
-    └── genie-meta → Meta coordination
-    ↓ each spawns via claude-mcp tool
-🤖 EXECUTION LAYER (.claude/agents/)
-    ├── Auto-load CLAUDE.md context at runtime
-    ├── Test-first methodology compliant heavy lifting
-    ├── Specialized task execution with 30-run memory
-    └── 180-day retention for pattern learning
+🏗️ TEMPLATES (ai/agents/, ai/teams/, ai/workflows/)
+    ├── template-agent → Agent template structure
+    ├── template-team → Team template structure
+    ├── template-workflow → Workflow template structure
+    └── template-tool → Tool template structure
 ```
 
-## Orchestration Patterns
+## Development Patterns
 
-**Domain Routing Decision Tree:**
-- **Development Tasks** → genie-dev → .claude/agents (planner, designer, coder, fixer)
-- **Testing Tasks** → genie-testing → .claude/agents (fixer, maker)  
-- **Quality Tasks** → genie-quality → .claude/agents (ruff, mypy, format)
-- **DevOps Tasks** → genie-devops → .claude/agents (cicd, config, infra, precommit, tasks)
-- **Meta Coordination** → genie-meta → .claude/agents (consciousness, coordinator, spawner)
-
-**Integration Features:**
-- **Auto-Loading**: All .claude/agents automatically inherit CLAUDE.md context
-- **Test-First**: Test-first methodology embedded across execution layer
-- **Version Management**: All new agents use version="dev" for consistency
-- **Parallel Execution**: Multiple .claude/agents can run simultaneously with dedicated contexts
+**Agent Creation Flow:**
+- **Copy Template** → Use template-agent as starting point
+- **Customize Config** → Update agent-specific settings
+- **Implement Logic** → Add specialized functionality
+- **Add to Registry** → Include in agent discovery
+- **Test Integration** → Verify agent functionality
 
 ## Quick Patterns
 
@@ -51,22 +36,16 @@ cp -r ai/agents/template-agent ai/agents/my-agent
 # Edit config.yaml, bump version, implement factory function
 ```
 
-### Genie Team Coordination
-```python
-genie_team = Team(
-    mode="coordinate",  # Coordinate between domain specialists
-    members=[genie_dev, genie_testing, genie_quality, genie_devops],
-    instructions="Coordinate specialized work across domains"
-)
+### Team Creation
+```bash
+cp -r ai/teams/template-team ai/teams/my-team
+# Edit config.yaml, define members and routing logic
 ```
 
-### Domain Orchestrator Pattern
-```python
-genie_dev = Agent(
-    instructions="Coordinate development work with .claude/agents execution layer",
-    tools=[claude_mcp_tool],  # Spawn .claude/agents for execution
-    # Auto-loads CLAUDE.md context for .claude/agents
-)
+### Workflow Creation  
+```bash
+cp -r ai/workflows/template-workflow ai/workflows/my-workflow
+# Edit config.yaml, define steps and coordination
 ```
 
 ### Workflow Steps
@@ -82,9 +61,7 @@ workflow = Workflow(steps=[
 
 ## Integration Points
 
-- **🧞 Genie Hive**: Three-layer coordination (Genie → Orchestrators → Execution)
-- **🔄 Auto-Loading**: .claude/agents automatically load CLAUDE.md context
-- **🛡️ Test-First**: Embedded test-first methodology across execution layer
+- **🏗️ Templates**: Copy-and-modify pattern for all components
 - **🌐 API**: Auto-expose via `Playground(agents, teams, workflows)`
 - **🔧 Config**: YAML-first configs, environment scaling  
 - **🧠 Knowledge**: CSV-RAG with domain filtering
