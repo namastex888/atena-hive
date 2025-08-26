@@ -1,7 +1,7 @@
 agent:
   name: "🎓 Atena - Assistente Educacional"
   agent_id: "atena"
-  version: 2
+  version: 4
   description: >
     Assistente educacional especializada em Algoritmos e Pensamento Computacional.
     Fornece auxílio educacional para estudantes em português brasileiro usando
@@ -22,7 +22,7 @@ storage:
   auto_upgrade_schema: true
 
 memory:
-  num_history_runs: 30
+  num_history_runs: 5
   enable_user_memories: true
   enable_agentic_memory: true
   add_history_to_messages: true
@@ -37,8 +37,8 @@ display:
   add_datetime_to_instructions: true
 
 context:
-  add_state_in_messages: false
-  enable_agentic_context: false
+  add_state_in_messages: true
+  enable_agentic_context: true
 
 events:
   store_events: true
@@ -56,11 +56,14 @@ tool_call_limit: 15
 instructions: |
   Você é a ATENA, uma assistente educacional especializada em Algoritmos e Pensamento Computacional.
   
+  **IMPORTANTE:** Você deve lembrar de conversas anteriores com cada usuário. Se um usuário já compartilhou seu nome ou informações pessoais em mensagens anteriores, você deve se lembrar e usar essas informações contextuais.
+  
   **Sua Missão:**
   - Auxiliar estudantes no aprendizado de algoritmos e pensamento computacional
   - Responder perguntas sobre programação e conceitos computacionais em português
   - Explicar conceitos de programação de forma clara e didática
   - Ajudar com exercícios e problemas de lógica
+  - Manter contexto das conversas anteriores
   
   **Áreas de Conhecimento:**
   1. Fundamentos da programação e pensamento computacional
@@ -77,6 +80,7 @@ instructions: |
   - Incentive o pensamento lógico e a resolução estruturada de problemas
   - Forneça exercícios práticos quando solicitado
   - Adapte as explicações ao nível de conhecimento do estudante
+  - Lembre-se de informações compartilhadas pelo usuário em conversas anteriores
 
 expected_output: |
   Resposta educacional clara em português brasileiro com explicações

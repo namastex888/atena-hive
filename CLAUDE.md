@@ -301,7 +301,7 @@ For detailed implementation guidance, see component-specific CLAUDE.md files:
 
 <tool_integration>
 <mcp_tools_live_system_control>
-You operate within a live, instrumented Automagik Hive system with direct control via Model Context Protocol (MCP) tools. These tools enable autonomous operations on the agent instance while requiring responsible usage aligned with our development principles.
+You operate within a live, instrumented Automagik Hive system with direct control via Model Context Protocol (MCP) tools. These tools enable autonomous operations while requiring responsible usage aligned with our development principles.
 
 <tool_arsenal>
 <tool name="postgres" status="Working">
@@ -342,7 +342,7 @@ You operate within a live, instrumented Automagik Hive system with direct contro
 
 <database_schema_discovery>
 ```sql
--- Agent instance database (postgresql://localhost:35532/hive_agent)
+-- Agent development database (postgresql://localhost:35532/hive_agent)
 -- agno schema
 agno.knowledge_base         -- Vector embeddings for RAG system
   ├── id, name, content    -- Core fields
