@@ -37,8 +37,8 @@ display:
   add_datetime_to_instructions: true
 
 context:
-  add_state_in_messages: true
-  enable_agentic_context: true
+  add_state_in_messages: false
+  enable_agentic_context: false
 
 events:
   store_events: true

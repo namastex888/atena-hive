@@ -414,6 +414,30 @@ async def _async_create_automagik_api():
 
     # Get the unified router - this provides all endpoints including workflows
     unified_router = playground.get_async_router()
+    
+    # Add AGUI support if enabled
+    if settings().hive_enable_agui:
+        from agno.app.agui.app import AGUIApp
+        from agno.agent.agent import Agent
+        from lib.config.models import resolve_model
+        
+        # Create a default agent for AGUI mode
+        agui_agent = Agent(
+            name="Automagik Hive Assistant",
+            model=resolve_model(),
+            instructions="You are a helpful AI assistant from Automagik Hive.",
+        )
+        
+        # Setup the AG-UI app
+        agui_app = AGUIApp(
+            agent=agui_agent,
+            name="Automagik Hive AG-UI",
+            app_id="automagik_hive_agui",
+        )
+        
+        # Mount AGUI app
+        agui_fastapi_app = agui_app.get_app()
+        app.mount("/agui", agui_fastapi_app)
 
     # Add authentication protection to playground routes if auth is enabled
     auth_service = startup_results.services.auth_service
