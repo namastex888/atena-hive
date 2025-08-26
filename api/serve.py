@@ -421,19 +421,41 @@ async def _async_create_automagik_api():
         from agno.agent.agent import Agent
         from lib.config.models import resolve_model
         
-        # Create a default agent for AGUI mode
-        agui_agent = Agent(
-            name="Automagik Hive Assistant",
-            model=resolve_model(),
-            instructions="You are a helpful AI assistant from Automagik Hive.",
-        )
+        # Use the same dynamic agent loading as playground
+        from ai.agents.registry import AgentRegistry
         
-        # Setup the AG-UI app
-        agui_app = AGUIApp(
-            agent=agui_agent,
-            name="Automagik Hive AG-UI",
-            app_id="automagik_hive_agui",
-        )
+        # Get agent ID from environment or default to first available
+        agui_agent_id = os.getenv("HIVE_AGUI_AGENT", None)
+        available_agents = AgentRegistry.list_available_agents()
+        logger.info(f"AGUI: Found {len(available_agents)} available agents: {available_agents}")
+        
+        selected_agent_id = None
+        if agui_agent_id and agui_agent_id in available_agents:
+            selected_agent_id = agui_agent_id
+            logger.info(f"AGUI: Using specified agent: {agui_agent_id}")
+        elif available_agents:
+            selected_agent_id = available_agents[0]
+            logger.info(f"AGUI: Using first available agent: {selected_agent_id}")
+        
+        if selected_agent_id:
+            # Load the selected agent asynchronously
+            try:
+                selected_agent = await AgentRegistry.get_agent(agent_id=selected_agent_id)
+                logger.info(f"AGUI: Successfully loaded agent: {selected_agent_id}")
+                
+                # Setup AGUI with dynamically loaded agent
+                agui_app = AGUIApp(
+                    agent=selected_agent,
+                    name=selected_agent.name,
+                    app_id=f"{selected_agent.agent_id}_agui",
+                    description=selected_agent.description or f"AGUI interface for {selected_agent.name}",
+                )
+            except Exception as e:
+                logger.error(f"AGUI: Failed to load agent {selected_agent_id}: {e}")
+                raise RuntimeError(f"AGUI: Failed to load any agents for AGUI interface: {e}")
+        else:
+            logger.error("AGUI: No agents found")
+            raise RuntimeError("AGUI: No agents available - check ai/agents/ directory")
         
         # Mount AGUI app
         agui_fastapi_app = agui_app.get_app()
