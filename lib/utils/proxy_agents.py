@@ -301,22 +301,40 @@ class AgnoAgentProxy:
             raise ValueError(f"Config is None for agent {component_id}")
 
         processed = {}
+        
+        logger.debug(f"🔍 Processing config for {component_id}", keys=list(config.keys()))
 
         # Process each configuration section
         for key, value in config.items():
             if key in self._custom_params:
                 # Use custom handler
+                logger.debug(f"🔧 Processing custom param '{key}' for {component_id}")
                 handler_result = self._custom_params[key](
                     value, config, component_id, db_url
                 )
+                logger.debug(f"🔧 Handler for '{key}' returned type: {type(handler_result).__name__}")
+                
                 if isinstance(handler_result, dict):
                     processed.update(handler_result)
                 # Special case: knowledge_filter handler returns knowledge base object
                 # that should be assigned to "knowledge" parameter, not "knowledge_filter"
                 elif key == "knowledge_filter" and handler_result is not None:
                     processed["knowledge"] = handler_result
-                else:
-                    processed[key] = handler_result
+                # CRITICAL FIX: Handle non-dict returns like model objects
+                elif handler_result is not None:
+                    # For handlers that return objects (like model), assign them directly
+                    if key == "model":
+                        processed["model"] = handler_result
+                        logger.debug(f"✅ Model assigned to processed params")
+                    elif key == "storage":
+                        processed["storage"] = handler_result
+                        logger.debug(f"✅ Storage assigned to processed params")
+                    elif key == "memory":
+                        processed["memory"] = handler_result
+                        logger.debug(f"✅ Memory assigned to processed params")
+                    else:
+                        # For any other custom handler returning an object
+                        processed[key] = handler_result
             elif key in self._supported_params:
                 # Direct mapping for supported parameters
                 processed[key] = value
@@ -376,26 +394,43 @@ class AgnoAgentProxy:
         across Agno updates.
         """
         from lib.config.models import resolve_model
-        from lib.utils.dynamic_model_resolver import filter_model_parameters
         from lib.config.provider_registry import get_provider_registry
+        from lib.utils.dynamic_model_resolver import filter_model_parameters
         
         # Debug: Log the incoming model config to trace the issue
-        logger.info(f"🔍 TEMPLATE-AGENT MODEL CONFIG for {component_id}: {model_config}")
-        print(f"🔍 TEMPLATE-AGENT MODEL CONFIG for {component_id}: {model_config}")
+        logger.info(f"🔍 MODEL CONFIG for {component_id}", model_config=model_config)
         
         model_id = model_config.get("id")
         provider = model_config.get("provider")
+        
+        # Special handling for Google models (gemini)
+        if provider == "google" or (model_id and "gemini" in model_id.lower()):
+            # Import Google/Gemini model directly from Agno
+            try:
+                from agno.models.google import Gemini
+                logger.debug(f"🌟 Creating Gemini model for {component_id} with id={model_id}")
+                # Create and return Gemini model instance
+                gemini_config = {"id": model_id or "gemini-2.5-pro"}
+                # Add other supported Gemini parameters
+                if "temperature" in model_config:
+                    gemini_config["temperature"] = model_config["temperature"]
+                if "max_tokens" in model_config:
+                    gemini_config["max_tokens"] = model_config["max_tokens"]
+                return Gemini(**gemini_config)
+            except Exception as e:
+                logger.error(f"❌ Failed to create Gemini model for {component_id}: {e}")
+                # Fall through to regular handling
         
         # Use dynamic introspection to determine model parameters
         # This automatically adapts to ANY Agno updates without requiring code changes
         try:
             # First, get the provider and model class to inspect its parameters
             registry = get_provider_registry()
-            detected_provider = registry.detect_provider(model_id) if model_id else provider
+            # If provider is explicitly set in config, use that instead of detection
+            detected_provider = provider or (registry.detect_provider(model_id) if model_id else None)
             
             if detected_provider:
                 # Get the specific model class for this provider/model
-                provider_classes = registry.get_provider_classes(detected_provider)
                 model_class = registry.resolve_model_class(detected_provider, model_id or "default")
                 
                 # Use our dynamic model resolver to filter parameters
@@ -415,16 +450,52 @@ class AgnoAgentProxy:
             logger.warning(f"🔍 Dynamic filtering failed for {component_id}: {e}. Using original config.")
             filtered_model_config = model_config
         
-        # Fix: Return model configuration instead of creating instances during startup
-        # This prevents multiple Agno model instantiations during bulk component discovery
-        if model_id:
-            logger.debug(f"🚀 Configured model: {model_id} for {component_id}")
-            # Return configuration for lazy instantiation by Agno Agent
-            return {"id": model_id, **filtered_model_config}
-        else:
-            # Fallback to default resolution only when no model ID is specified
-            logger.warning(f"⚠️ No model ID specified for {component_id}, using default resolution")
-            return resolve_model(model_id=None, **filtered_model_config)
+        # Create model instance using resolve_model with error handling
+        try:
+            return resolve_model(model_id=model_id, **filtered_model_config)
+        except Exception as e:
+            # Use our error handler for API-related errors
+            from lib.utils.error_handlers import ModelProviderErrorHandler
+            error_str = str(e).lower()
+            error_type_str = str(type(e))
+            
+            # Check if this is a known API error that should be handled gracefully
+            # Include specific Agno and Google AI exception types
+            is_api_error = (
+                any(phrase in error_str for phrase in [
+                    "api key expired", "api_key_invalid", "invalid api key", 
+                    "unauthorized", "authentication failed", "rate limit", 
+                    "quota exceeded", "too many requests", "model not found",
+                    "permission denied", "forbidden", "401", "403", "429"
+                ]) or 
+                any(error_type in error_type_str for error_type in [
+                    "ModelProviderError", "ClientError", "ServerError", 
+                    "APIError", "AuthenticationError", "PermissionError"
+                ])
+            )
+            
+            if is_api_error:
+                handler = ModelProviderErrorHandler()
+                error_response = handler.handle_api_error(e, component_id)
+                logger.error(f"🔑 Model provider error for {component_id}: {error_response['message']}")
+                
+                # Return a mock model that will handle errors gracefully at runtime
+                from lib.utils.fallback_model import FallbackModel
+                return FallbackModel(error_response=error_response, component_id=component_id)
+            else:
+                # For non-API errors, continue with fallback
+                logger.error(f"❌ Failed to resolve model for {component_id}: {e}")
+                logger.warning(f"⚠️ Using default model resolution for {component_id}")
+                try:
+                    return resolve_model(model_id=None)
+                except Exception as fallback_error:
+                    # If even the fallback fails, return FallbackModel
+                    logger.error(f"❌ Even fallback model resolution failed for {component_id}: {fallback_error}")
+                    from lib.utils.error_handlers import ModelProviderErrorHandler
+                    handler = ModelProviderErrorHandler()
+                    error_response = handler.handle_api_error(fallback_error, component_id)
+                    from lib.utils.fallback_model import FallbackModel
+                    return FallbackModel(error_response=error_response, component_id=component_id)
 
     def _handle_storage_config(
         self,

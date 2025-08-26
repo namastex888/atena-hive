@@ -6,6 +6,7 @@ No over-engineering. No abstract patterns. Just working CLI.
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -125,7 +126,7 @@ Use --help for detailed options or see documentation.
     # Utility flags
     parser.add_argument("--tail", type=int, default=50, help="Number of log lines to show")
     parser.add_argument("--host", default="0.0.0.0", help="Host to bind server to")
-    parser.add_argument("--port", type=int, default=8886, help="Port to bind server to")
+    parser.add_argument("--port", type=int, default=int(os.getenv("HIVE_API_PORT", "8886")), help="Port to bind server to")
     
     # Create subparsers for commands
     subparsers = parser.add_subparsers(dest="command", help="Available commands")

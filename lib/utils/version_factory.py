@@ -173,12 +173,41 @@ class VersionFactory:
         **context_kwargs,
     ) -> Agent:
         """Create versioned agent using dynamic Agno proxy with inheritance support."""
+        
+        # First check if there's a custom agent.py file that should be used instead
+        from pathlib import Path
+        agent_module_path = Path(f"ai/agents/{component_id}/agent.py")
+        
+        if agent_module_path.exists():
+            try:
+                # Import the custom agent module
+                import importlib.util
+                spec = importlib.util.spec_from_file_location(
+                    f"ai.agents.{component_id}.agent",
+                    agent_module_path
+                )
+                agent_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(agent_module)
+                
+                # Look for a get_<agent_id>_agent function or get_agent function
+                func_name = f"get_{component_id}_agent"
+                if hasattr(agent_module, func_name):
+                    agent_func = getattr(agent_module, func_name)
+                    logger.info(f"🎯 Using custom agent.py for {component_id}")
+                    return agent_func()
+                elif hasattr(agent_module, "get_agent"):
+                    agent_func = getattr(agent_module, "get_agent")
+                    logger.info(f"🎯 Using custom agent.py for {component_id}")
+                    return agent_func()
+            except Exception as e:
+                logger.warning(f"Failed to load custom agent.py for {component_id}: {e}")
+                # Fall through to proxy system
 
-        # Extract agent-specific config if full config provided
-        agent_config = config.get("agent", config) if "agent" in config else config
+        # Pass the FULL config to proxy, not just the agent section
+        # The proxy knows how to handle all sections (agent, model, storage, etc.)
         
         # Apply inheritance from team configuration if agent is part of a team
-        inherited_config = self._apply_team_inheritance(component_id, agent_config)
+        inherited_config = self._apply_team_inheritance(component_id, config)
 
         # Use the dynamic proxy system for automatic Agno compatibility
         from lib.utils.agno_proxy import get_agno_proxy

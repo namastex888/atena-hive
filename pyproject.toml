@@ -10,6 +10,8 @@ dependencies = [
     "anthropic>=0.64.0",
     "docker>=7.1.0",
     "fastapi>=0.116.1",
+    "google-genai>=1.31.0",
+    "google-generativeai>=0.8.5",
     "httpx>=0.28.1",
     "langwatch>=0.2.11",
     "loguru>=0.7.3",
@@ -23,6 +25,7 @@ dependencies = [
     "psycopg2-binary>=2.9.10",
     "pydantic>=2.11.7",
     "pydantic-settings>=2.10.1",
+    "pypdf>=6.0.0",
     "python-dotenv>=1.1.1",
     "pyyaml>=6.0.2",
     "rich>=14.1.0",
@@ -55,6 +58,7 @@ dev = [
     "coverage>=7.10.4",
     "pytest-mock>=3.14.1",
     "psutil>=7.0.0",
+    "pytest-cov>=6.2.1",
 ]
 
 [tool.ruff]

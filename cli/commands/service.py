@@ -9,6 +9,14 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+# Load environment variables if dotenv is available
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # If dotenv is not available, just use system environment
+    pass
+
 from cli.core.main_service import MainService
 
 

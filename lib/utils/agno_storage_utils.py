@@ -71,7 +71,7 @@ def create_dynamic_storage(
     storage_config: dict[str, Any],
     component_id: str,
     component_mode: str,
-    db_url: str | None,
+    db_url: str | None = None,
 ):
     """
     Fully dynamic storage creation using introspection.
@@ -94,6 +94,13 @@ def create_dynamic_storage(
         ImportError: If storage class cannot be imported
         Exception: If storage instantiation fails
     """
+    # Fallback to environment variable if db_url not provided
+    if db_url is None:
+        import os
+        db_url = os.getenv("HIVE_DATABASE_URL")
+        if db_url:
+            logger.debug(f"🔧 Using HIVE_DATABASE_URL from environment for {component_id}")
+    
     # 1. Get storage type from YAML (default to postgres for backward compatibility)
     storage_type = storage_config.get("type", "postgres")
 
